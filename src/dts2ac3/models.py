@@ -29,3 +29,18 @@ class AudioTrack:
 class ToolValidationResult:
     is_valid: bool
     errors: list[str]
+
+
+@dataclass(slots=True)
+class CommandResult:
+    return_code: int
+    stdout_lines: list[str]
+    stderr_lines: list[str]
+    cancelled: bool = False
+
+
+@dataclass(slots=True)
+class WorkflowResult:
+    success: bool
+    output_file: Path | None = None
+    error_message: str | None = None
