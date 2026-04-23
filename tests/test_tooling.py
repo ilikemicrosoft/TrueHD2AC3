@@ -129,6 +129,31 @@ def test_build_eac3to_convert_command_expands_percent_placeholder() -> None:
     ]
 
 
+def test_build_eac3to_convert_command_preserves_spaces_in_output_path() -> None:
+    command = build_eac3to_convert_command(
+        eac3to_dir=Path(r"C:\Program Files (x86)\eac3to_3.52"),
+        source_file=Path(r"D:\media\movie.mkv"),
+        selected_track=AudioTrack(
+            track_id=3,
+            codec="TrueHD Atmos",
+            language="jpn",
+            channels=8,
+            is_default=True,
+            display_name="Japanese Atmos",
+        ),
+        working_dir=Path(r"D:\temp files\ac3 output"),
+        argument_template="%_.ac3 -640",
+    )
+
+    assert command == [
+        str(Path(r"C:\Program Files (x86)\eac3to_3.52") / "eac3to.exe"),
+        str(Path(r"D:\media\movie.mkv")),
+        "4:",
+        str(Path(r"D:\temp files\ac3 output") / "movie.track3.ac3"),
+        "-640",
+    ]
+
+
 def test_build_mkvmerge_replace_command_excludes_selected_track() -> None:
     track = AudioTrack(
         track_id=3,

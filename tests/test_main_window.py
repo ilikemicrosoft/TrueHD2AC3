@@ -1,0 +1,83 @@
+from pathlib import Path
+
+from dts2ac3.models import AppSettings, AudioTrack
+from dts2ac3.ui.main_window import MainWindow
+
+
+def test_scan_results_populate_truehd_track_dropdown(qtbot, tmp_path: Path) -> None:
+    settings = AppSettings(
+        mkvtoolnix_dir=Path(r"C:\Program Files\MKVToolNix"),
+        eac3to_dir=Path(r"C:\Program Files (x86)\eac3to_3.52"),
+        output_dir=tmp_path,
+        working_dir=tmp_path,
+    )
+    window = MainWindow(
+        settings=settings,
+        scan_tracks=lambda path: [
+            AudioTrack(1, "TrueHD Atmos", "jpn", 8, True, "Japanese Atmos"),
+            AudioTrack(2, "TrueHD", "eng", 8, False, "English TrueHD"),
+        ],
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: None,
+    )
+    qtbot.addWidget(window)
+
+    window.source_file_edit.setText(str(tmp_path / "movie.mkv"))
+    window.handle_scan_tracks()
+
+    assert window.track_combo.count() == 2
+    assert window.track_combo.itemData(0) == 1
+    assert "Japanese Atmos" in window.track_combo.itemText(0)
+
+
+def test_log_append_writes_lines_to_text_box(qtbot, tmp_path: Path) -> None:
+    window = MainWindow(
+        settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
+        scan_tracks=lambda path: [],
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: None,
+    )
+    qtbot.addWidget(window)
+
+    window.append_log("mkvmerge started")
+
+    assert "mkvmerge started" in window.log_output.toPlainText()
+
+
+def test_source_file_prefills_output_name(qtbot, tmp_path: Path) -> None:
+    window = MainWindow(
+        settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
+        scan_tracks=lambda path: [],
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: None,
+    )
+    qtbot.addWidget(window)
+
+    source = tmp_path / "Movie.Name.2026.mkv"
+    window.source_file_edit.setText(str(source))
+    window.handle_source_file_changed(str(source))
+
+    assert window.output_name_edit.text() == "Movie.Name.2026"
+
+
+def test_scan_with_no_truehd_tracks_logs_clear_message(qtbot, tmp_path: Path, monkeypatch) -> None:
+    window = MainWindow(
+        settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
+        scan_tracks=lambda path: [],
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: None,
+    )
+    qtbot.addWidget(window)
+    monkeypatch.setattr(
+        "dts2ac3.ui.main_window.QMessageBox.information",
+        lambda *args, **kwargs: None,
+    )
+
+    window.source_file_edit.setText(str(tmp_path / "movie.mkv"))
+    window.handle_scan_tracks()
+
+    assert "No TrueHD tracks detected." in window.log_output.toPlainText()

@@ -59,7 +59,10 @@ def build_eac3to_convert_command(
     argument_template: str,
 ) -> list[str]:
     output_file = working_dir / f"{source_file.stem}.track{selected_track.track_id}.ac3"
-    tokens = argument_template.replace("%_.ac3", str(output_file)).split()
+    tokens = [
+        token.replace("%_.ac3", str(output_file)).replace("%_", str(output_file.with_suffix("")))
+        for token in argument_template.split()
+    ]
 
     return [
         str(eac3to_dir / "eac3to.exe"),
