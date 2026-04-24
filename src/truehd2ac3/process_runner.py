@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import subprocess
 
-from dts2ac3.models import CommandResult
+from truehd2ac3.models import CommandResult
 
 
 class ProcessRunner:

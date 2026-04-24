@@ -1,4 +1,4 @@
-# DTS2AC3
+# TrueHD2AC3
 
 PySide6 desktop utility for Windows that automates a TrueHD-to-AC3 workflow with MKVToolNix and eac3to.
 
@@ -32,7 +32,7 @@ python -m pip install -e .[dev]
 ## Run
 
 ```powershell
-python -m dts2ac3.main
+python -m truehd2ac3.main
 ```
 
 ## Test

@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from dts2ac3.models import AppSettings, CommandResult, ToolValidationResult
-from dts2ac3.workflow import WorkflowCoordinator
+from truehd2ac3.models import AppSettings, CommandResult, ToolValidationResult
+from truehd2ac3.workflow import WorkflowCoordinator
 
 
 class FakeRunner:

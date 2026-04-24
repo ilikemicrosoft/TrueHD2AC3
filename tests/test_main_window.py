@@ -3,8 +3,8 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QCloseEvent
 
-from dts2ac3.models import AppSettings, AudioTrack
-from dts2ac3.ui.main_window import MainWindow
+from truehd2ac3.models import AppSettings, AudioTrack
+from truehd2ac3.ui.main_window import MainWindow
 
 
 def test_scan_results_populate_truehd_track_dropdown(qtbot, tmp_path: Path) -> None:
@@ -26,6 +26,7 @@ def test_scan_results_populate_truehd_track_dropdown(qtbot, tmp_path: Path) -> N
         save_settings=lambda settings: None,
     )
     qtbot.addWidget(window)
+    assert window.windowTitle() == "TrueHD2AC3"
 
     window.source_file_edit.setText(str(tmp_path / "movie.mkv"))
     window.handle_scan_tracks()
@@ -81,11 +82,11 @@ def test_scan_with_no_truehd_tracks_logs_clear_message(qtbot, tmp_path: Path, mo
     )
     qtbot.addWidget(window)
     monkeypatch.setattr(
-        "dts2ac3.ui.main_window.QMessageBox.information",
+        "truehd2ac3.ui.main_window.QMessageBox.information",
         lambda *args, **kwargs: None,
     )
     monkeypatch.setattr(
-        "dts2ac3.ui.main_window.QMessageBox.critical",
+        "truehd2ac3.ui.main_window.QMessageBox.critical",
         lambda *args, **kwargs: None,
     )
 
@@ -113,11 +114,11 @@ def test_scan_uses_current_form_settings(qtbot, tmp_path: Path, monkeypatch) -> 
     )
     qtbot.addWidget(window)
     monkeypatch.setattr(
-        "dts2ac3.ui.main_window.QMessageBox.information",
+        "truehd2ac3.ui.main_window.QMessageBox.information",
         lambda *args, **kwargs: None,
     )
     monkeypatch.setattr(
-        "dts2ac3.ui.main_window.QMessageBox.critical",
+        "truehd2ac3.ui.main_window.QMessageBox.critical",
         lambda *args, **kwargs: None,
     )
 

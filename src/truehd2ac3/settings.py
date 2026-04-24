@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from dts2ac3.models import AppSettings
+from truehd2ac3.models import AppSettings
 
 
 class AppSettingsStore:

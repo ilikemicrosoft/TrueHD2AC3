@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 from typing import Callable
 
-from dts2ac3.models import AppSettings, AudioTrack, WorkflowResult
-from dts2ac3.process_runner import ProcessRunner
-from dts2ac3.tooling import (
+from truehd2ac3.models import AppSettings, AudioTrack, WorkflowResult
+from truehd2ac3.process_runner import ProcessRunner
+from truehd2ac3.tooling import (
     build_eac3to_convert_command,
     build_mkvextract_command,
     build_mkvmerge_command,

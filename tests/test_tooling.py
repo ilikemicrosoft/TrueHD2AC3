@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from dts2ac3.models import AudioTrack
-from dts2ac3.tooling import (
+from truehd2ac3.models import AudioTrack
+from truehd2ac3.tooling import (
     build_eac3to_convert_command,
     build_mkvextract_command,
     build_mkvmerge_command,

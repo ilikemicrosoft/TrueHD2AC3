@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $distRoot = Join-Path $projectRoot "dist"
 $buildRoot = Join-Path $projectRoot "build"
-$appName = "DTS2AC3"
+$appName = "TrueHD2AC3"
 $portableRoot = Join-Path $distRoot "$appName-portable"
 $portableAppDir = Join-Path $portableRoot $appName
 $archivePath = Join-Path $distRoot "$appName-portable.zip"
@@ -39,11 +39,11 @@ try {
         --workpath $buildRoot `
         --specpath $buildRoot `
         --paths src `
-        src\dts2ac3\main.py
+        src\truehd2ac3\main.py
 
     $readmePath = Join-Path $portableRoot "README-portable.txt"
     @"
-DTS2AC3 Portable
+TrueHD2AC3 Portable
 ================
 
 Run:
@@ -55,7 +55,7 @@ Requirements:
 
 Notes:
   - This is a portable build. Extract the whole folder before running.
-  - Current settings are still stored under %APPDATA%\DTS2AC3\settings.json.
+  - Current settings are stored under %APPDATA%\TrueHD2AC3\settings.json.
 "@ | Set-Content -LiteralPath $readmePath -Encoding UTF8
 
     Compress-Archive -Path "$portableRoot\*" -DestinationPath $archivePath -Force

@@ -23,8 +23,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from dts2ac3.models import AppSettings, AudioTrack, WorkflowResult
-from dts2ac3.tooling import is_truehd_track
+from truehd2ac3.models import AppSettings, AudioTrack, WorkflowResult
+from truehd2ac3.tooling import is_truehd_track
 
 DEFAULT_MKVTOOLNIX_DIR = Path(r"C:\Program Files\MKVToolNix")
 DEFAULT_EAC3TO_DIR = Path(r"C:\Program Files (x86)\eac3to_3.52")
@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
         self._detect_tool_dir = detect_tool_dir or self._default_detect_tool_dir
         self._tracks: list[AudioTrack] = []
         self._job_thread: JobThread | None = None
-        self.setWindowTitle("DTS2AC3")
+        self.setWindowTitle("TrueHD2AC3")
         self.resize(980, 720)
         self._build_ui()
         self._load_settings()

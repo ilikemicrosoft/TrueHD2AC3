@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from dts2ac3.models import AudioTrack, ToolValidationResult
+from truehd2ac3.models import AudioTrack, ToolValidationResult
 
 
 def validate_tool_directories(
