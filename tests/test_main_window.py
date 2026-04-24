@@ -243,3 +243,73 @@ def test_close_event_saves_manual_tool_dir_changes(qtbot, tmp_path: Path) -> Non
     assert len(saved_settings) == 1
     assert saved_settings[0].mkvtoolnix_dir == Path(r"D:\manual\MKVToolNix")
     assert saved_settings[0].eac3to_dir == Path(r"D:\manual\eac3to")
+
+
+def test_window_accepts_drag_and_drop(qtbot, tmp_path: Path) -> None:
+    window = MainWindow(
+        settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
+        scan_tracks=lambda path, runtime_settings: [],
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: None,
+        detect_tool_dir=lambda tool_name: None,
+    )
+    qtbot.addWidget(window)
+
+    assert window.acceptDrops() is True
+
+
+def test_set_source_file_auto_scans_when_requested(qtbot, tmp_path: Path, monkeypatch) -> None:
+    scanned: list[Path] = []
+    source_file = tmp_path / "dragged.mkv"
+    source_file.write_text("stub", encoding="utf-8")
+
+    window = MainWindow(
+        settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
+        scan_tracks=lambda path, runtime_settings: scanned.append(path) or [],
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: None,
+        detect_tool_dir=lambda tool_name: None,
+    )
+    qtbot.addWidget(window)
+    monkeypatch.setattr(
+        "truehd2ac3.ui.main_window.QMessageBox.information",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        "truehd2ac3.ui.main_window.QMessageBox.critical",
+        lambda *args, **kwargs: None,
+    )
+
+    window.set_source_file(source_file, auto_scan=True)
+
+    assert window.source_file_edit.text() == str(source_file)
+    assert window.output_name_edit.text() == "dragged"
+    assert scanned == [source_file]
+
+
+def test_handle_dropped_paths_rejects_multiple_files(qtbot, tmp_path: Path, monkeypatch) -> None:
+    warnings: list[str] = []
+    first = tmp_path / "a.mkv"
+    second = tmp_path / "b.mkv"
+    first.write_text("a", encoding="utf-8")
+    second.write_text("b", encoding="utf-8")
+
+    window = MainWindow(
+        settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
+        scan_tracks=lambda path, runtime_settings: [],
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: None,
+        detect_tool_dir=lambda tool_name: None,
+    )
+    qtbot.addWidget(window)
+    monkeypatch.setattr(
+        "truehd2ac3.ui.main_window.QMessageBox.warning",
+        lambda parent, title, text: warnings.append(text),
+    )
+
+    window.handle_dropped_paths([first, second])
+
+    assert warnings == ["暂不支持批量，请只拖入单个媒体文件。"]

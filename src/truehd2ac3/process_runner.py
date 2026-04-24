@@ -10,13 +10,23 @@ class ProcessRunner:
         self._process: subprocess.Popen[str] | None = None
 
     def run(self, command: list[str], on_output) -> CommandResult:
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE,
+            "text": True,
+            "encoding": "utf-8",
+            "errors": "replace",
+        }
+        if subprocess._mswindows:
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            popen_kwargs["startupinfo"] = startupinfo
+            popen_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
         self._process = subprocess.Popen(
             command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
+            **popen_kwargs,
         )
         stdout_lines: list[str] = []
         stderr_lines: list[str] = []

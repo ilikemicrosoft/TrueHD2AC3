@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QThread, Qt, Signal
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtCore import QMimeData, QThread, Qt, Signal
+from PySide6.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -68,6 +68,7 @@ class MainWindow(QMainWindow):
         self._job_thread: JobThread | None = None
         self.setWindowTitle("TrueHD2AC3")
         self.resize(980, 720)
+        self.setAcceptDrops(True)
         self._build_ui()
         self._load_settings()
 
@@ -188,7 +189,35 @@ class MainWindow(QMainWindow):
     def pick_file(self, target: QLineEdit) -> None:
         selected, _ = QFileDialog.getOpenFileName(self, "选择片源文件", target.text().strip())
         if selected:
-            target.setText(selected)
+            self.set_source_file(Path(selected))
+
+    def set_source_file(self, source_path: Path, auto_scan: bool = False) -> None:
+        self.source_file_edit.setText(str(source_path))
+        self.output_name_edit.setText(source_path.stem)
+        if auto_scan:
+            self.handle_scan_tracks()
+
+    def handle_dropped_paths(self, paths: list[Path]) -> None:
+        if len(paths) != 1:
+            QMessageBox.warning(self, "拖拽数量不支持", "暂不支持批量，请只拖入单个媒体文件。")
+            return
+
+        self.set_source_file(paths[0], auto_scan=True)
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        mime_data = event.mimeData()
+        if self._extract_dropped_paths(mime_data):
+            event.acceptProposedAction()
+            return
+        event.ignore()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        paths = self._extract_dropped_paths(event.mimeData())
+        if not paths:
+            event.ignore()
+            return
+        self.handle_dropped_paths(paths)
+        event.acceptProposedAction()
 
     def handle_source_file_changed(self, text: str) -> None:
         cleaned = text.strip()
@@ -299,6 +328,20 @@ class MainWindow(QMainWindow):
     @staticmethod
     def _default_existing_dir(candidate: Path) -> Path | None:
         return candidate if candidate.exists() else None
+
+    @staticmethod
+    def _extract_dropped_paths(mime_data: QMimeData) -> list[Path]:
+        if not mime_data.hasUrls():
+            return []
+
+        paths: list[Path] = []
+        for url in mime_data.urls():
+            if not url.isLocalFile():
+                continue
+            local_path = Path(url.toLocalFile())
+            if local_path.is_file():
+                paths.append(local_path)
+        return paths
 
     @staticmethod
     def _default_detect_tool_dir(tool_name: str) -> Path | None:
