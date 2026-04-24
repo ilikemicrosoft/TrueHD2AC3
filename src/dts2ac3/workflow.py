@@ -33,7 +33,7 @@ class WorkflowCoordinator:
         if hasattr(self._runner, "cancel"):
             self._runner.cancel()
 
-    def scan_truehd_tracks(
+    def scan_audio_tracks(
         self,
         source_file: Path,
         settings: AppSettings,
@@ -52,7 +52,15 @@ class WorkflowCoordinator:
             raise RuntimeError("Track scan failed.")
 
         probe_payload = json.loads("".join(probe_result.stdout_lines))
-        return find_truehd_tracks(parse_mkvmerge_tracks(probe_payload))
+        return parse_mkvmerge_tracks(probe_payload)
+
+    def scan_truehd_tracks(
+        self,
+        source_file: Path,
+        settings: AppSettings,
+        on_log=lambda line: None,
+    ) -> list[AudioTrack]:
+        return find_truehd_tracks(self.scan_audio_tracks(source_file, settings, on_log))
 
     def run_job(
         self,

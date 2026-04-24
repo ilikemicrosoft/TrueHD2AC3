@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QPushButton,
@@ -21,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from dts2ac3.models import AppSettings, AudioTrack, WorkflowResult
+from dts2ac3.tooling import is_truehd_track
 
 DEFAULT_MKVTOOLNIX_DIR = Path(r"C:\Program Files\MKVToolNix")
 DEFAULT_EAC3TO_DIR = Path(r"C:\Program Files (x86)\eac3to_3.52")
@@ -72,6 +75,8 @@ class MainWindow(QMainWindow):
         self.eac3to_args_edit = QLineEdit()
         self.track_combo = QComboBox()
         self.track_combo.setPlaceholderText("先扫描 TrueHD 音轨")
+        self.audio_track_list = QListWidget()
+        self.audio_track_list.setSelectionMode(QListWidget.SelectionMode.NoSelection)
         self.log_output = QPlainTextEdit()
         self.log_output.setReadOnly(True)
 
@@ -105,6 +110,8 @@ class MainWindow(QMainWindow):
         layout.addLayout(radio_row)
         layout.addWidget(self.cleanup_checkbox)
         layout.addLayout(button_row)
+        layout.addWidget(QLabel("扫描到的全部音轨"))
+        layout.addWidget(self.audio_track_list)
         layout.addWidget(QLabel("命令输出"))
         layout.addWidget(self.log_output)
         self.setCentralWidget(central)
@@ -167,6 +174,7 @@ class MainWindow(QMainWindow):
         source_path = Path(source_text)
         self._sync_settings_from_form()
         self.track_combo.clear()
+        self.audio_track_list.clear()
         self.append_log(f"Scanning: {source_path}")
         try:
             self._tracks = self._scan_tracks(source_path, self._settings)
@@ -174,14 +182,22 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "扫描失败", str(exc))
             return
 
-        if not self._tracks:
+        truehd_tracks: list[AudioTrack] = []
+        for track in self._tracks:
+            item = QListWidgetItem(self._format_track_label(track))
+            if is_truehd_track(track):
+                truehd_tracks.append(track)
+            else:
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
+            self.audio_track_list.addItem(item)
+
+        if not truehd_tracks:
             self.append_log("No TrueHD tracks detected.")
             QMessageBox.information(self, "未找到 TrueHD", "没有检测到可转换的 TrueHD 音轨。")
             return
 
-        for track in self._tracks:
-            channel_text = f"{track.channels}ch" if track.channels is not None else "unknown"
-            label = f"#{track.track_id} | {track.language} | {channel_text} | {track.codec} | {track.display_name}"
+        for track in truehd_tracks:
+            label = self._format_track_label(track)
             self.track_combo.addItem(label, track.track_id)
 
     def handle_run_job(self) -> None:
@@ -245,6 +261,11 @@ class MainWindow(QMainWindow):
     @staticmethod
     def _default_existing_dir(candidate: Path) -> Path | None:
         return candidate if candidate.exists() else None
+
+    @staticmethod
+    def _format_track_label(track: AudioTrack) -> str:
+        channel_text = f"{track.channels}ch" if track.channels is not None else "unknown"
+        return f"#{track.track_id} | {track.language} | {channel_text} | {track.codec} | {track.display_name}"
 
     def append_log(self, line: str) -> None:
         self.log_output.appendPlainText(line)

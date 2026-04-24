@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from PySide6.QtCore import Qt
+
 from dts2ac3.models import AppSettings, AudioTrack
 from dts2ac3.ui.main_window import MainWindow
 
@@ -15,7 +17,8 @@ def test_scan_results_populate_truehd_track_dropdown(qtbot, tmp_path: Path) -> N
         settings=settings,
         scan_tracks=lambda path, runtime_settings: [
             AudioTrack(1, "TrueHD Atmos", "jpn", 8, True, "Japanese Atmos"),
-            AudioTrack(2, "TrueHD", "eng", 8, False, "English TrueHD"),
+            AudioTrack(2, "AC-3", "eng", 6, False, "English AC3"),
+            AudioTrack(3, "TrueHD", "eng", 8, False, "English TrueHD"),
         ],
         run_job=lambda **kwargs: None,
         cancel_job=lambda: None,
@@ -29,6 +32,10 @@ def test_scan_results_populate_truehd_track_dropdown(qtbot, tmp_path: Path) -> N
     assert window.track_combo.count() == 2
     assert window.track_combo.itemData(0) == 1
     assert "Japanese Atmos" in window.track_combo.itemText(0)
+    assert window.track_combo.itemData(1) == 3
+    assert window.audio_track_list.count() == 3
+    assert "English AC3" in window.audio_track_list.item(1).text()
+    assert not window.audio_track_list.item(1).flags() & Qt.ItemFlag.ItemIsEnabled
 
 
 def test_log_append_writes_lines_to_text_box(qtbot, tmp_path: Path) -> None:

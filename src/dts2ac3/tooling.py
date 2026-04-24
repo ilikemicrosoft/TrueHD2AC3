@@ -44,7 +44,11 @@ def parse_mkvmerge_tracks(payload: dict) -> list[AudioTrack]:
 
 
 def find_truehd_tracks(tracks: list[AudioTrack]) -> list[AudioTrack]:
-    return [track for track in tracks if "truehd" in track.codec.lower()]
+    return [track for track in tracks if is_truehd_track(track)]
+
+
+def is_truehd_track(track: AudioTrack) -> bool:
+    return "truehd" in track.codec.lower()
 
 
 def build_probe_command(mkvtoolnix_dir: Path, source_file: Path) -> list[str]:

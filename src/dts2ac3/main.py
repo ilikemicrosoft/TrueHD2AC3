@@ -21,7 +21,7 @@ def main() -> int:
 
     window = MainWindow(
         settings=settings,
-        scan_tracks=workflow.scan_truehd_tracks,
+        scan_tracks=workflow.scan_audio_tracks,
         run_job=workflow.run_job,
         cancel_job=workflow.cancel,
         save_settings=store.save,
