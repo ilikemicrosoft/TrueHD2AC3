@@ -38,7 +38,6 @@ try {
         --distpath $portableRoot `
         --workpath $buildRoot `
         --specpath $buildRoot `
-        --collect-all PySide6 `
         --paths src `
         src\dts2ac3\main.py
 
