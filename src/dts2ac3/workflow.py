@@ -39,6 +39,9 @@ class WorkflowCoordinator:
         settings: AppSettings,
         on_log=lambda line: None,
     ) -> list[AudioTrack]:
+        if not settings.mkvtoolnix_dir:
+            raise RuntimeError("MKVToolNix directory is required before scanning.")
+
         probe_result = self._runner.run(
             build_probe_command(settings.mkvtoolnix_dir, source_file),
             on_log,

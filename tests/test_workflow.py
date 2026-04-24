@@ -177,6 +177,23 @@ def test_scan_truehd_tracks_returns_truehd_candidates_only(tmp_path: Path) -> No
     assert [track.track_id for track in tracks] == [1]
 
 
+def test_scan_truehd_tracks_requires_mkvtoolnix_dir(tmp_path: Path) -> None:
+    coordinator = WorkflowCoordinator(runner=FakeRunner([]))
+    settings = AppSettings(
+        mkvtoolnix_dir=None,
+        eac3to_dir=Path(r"C:\Program Files (x86)\eac3to_3.52"),
+        output_dir=tmp_path,
+        working_dir=tmp_path,
+    )
+
+    try:
+        coordinator.scan_truehd_tracks(tmp_path / "movie.mkv", settings)
+    except RuntimeError as exc:
+        assert str(exc) == "MKVToolNix directory is required before scanning."
+    else:
+        raise AssertionError("Expected RuntimeError when MKVToolNix directory is missing.")
+
+
 def test_cleanup_failure_is_logged_but_not_fatal(tmp_path: Path) -> None:
     runner = FakeRunner(
         [

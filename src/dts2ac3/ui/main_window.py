@@ -165,10 +165,11 @@ class MainWindow(QMainWindow):
             return
 
         source_path = Path(source_text)
+        self._sync_settings_from_form()
         self.track_combo.clear()
         self.append_log(f"Scanning: {source_path}")
         try:
-            self._tracks = self._scan_tracks(source_path)
+            self._tracks = self._scan_tracks(source_path, self._settings)
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "扫描失败", str(exc))
             return
@@ -191,13 +192,7 @@ class MainWindow(QMainWindow):
             return
 
         selected_track_id = self.track_combo.currentData()
-        self._settings.mkvtoolnix_dir = self._as_path(self.mkvtoolnix_edit)
-        self._settings.eac3to_dir = self._as_path(self.eac3to_edit)
-        self._settings.output_dir = self._as_path(self.output_dir_edit)
-        self._settings.working_dir = self._as_path(self.working_dir_edit)
-        self._settings.eac3to_args = self.eac3to_args_edit.text().strip()
-        self._settings.replace_selected_truehd = self.replace_radio.isChecked()
-        self._settings.cleanup_temp_files = self.cleanup_checkbox.isChecked()
+        self._sync_settings_from_form()
         self._save_settings(self._settings)
 
         self._set_running_state(True)
@@ -237,6 +232,15 @@ class MainWindow(QMainWindow):
     def _as_path(widget: QLineEdit) -> Path | None:
         text = widget.text().strip()
         return Path(text) if text else None
+
+    def _sync_settings_from_form(self) -> None:
+        self._settings.mkvtoolnix_dir = self._as_path(self.mkvtoolnix_edit)
+        self._settings.eac3to_dir = self._as_path(self.eac3to_edit)
+        self._settings.output_dir = self._as_path(self.output_dir_edit)
+        self._settings.working_dir = self._as_path(self.working_dir_edit)
+        self._settings.eac3to_args = self.eac3to_args_edit.text().strip()
+        self._settings.replace_selected_truehd = self.replace_radio.isChecked()
+        self._settings.cleanup_temp_files = self.cleanup_checkbox.isChecked()
 
     @staticmethod
     def _default_existing_dir(candidate: Path) -> Path | None:

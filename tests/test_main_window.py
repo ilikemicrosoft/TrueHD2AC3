@@ -13,7 +13,7 @@ def test_scan_results_populate_truehd_track_dropdown(qtbot, tmp_path: Path) -> N
     )
     window = MainWindow(
         settings=settings,
-        scan_tracks=lambda path: [
+        scan_tracks=lambda path, runtime_settings: [
             AudioTrack(1, "TrueHD Atmos", "jpn", 8, True, "Japanese Atmos"),
             AudioTrack(2, "TrueHD", "eng", 8, False, "English TrueHD"),
         ],
@@ -34,7 +34,7 @@ def test_scan_results_populate_truehd_track_dropdown(qtbot, tmp_path: Path) -> N
 def test_log_append_writes_lines_to_text_box(qtbot, tmp_path: Path) -> None:
     window = MainWindow(
         settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
-        scan_tracks=lambda path: [],
+        scan_tracks=lambda path, runtime_settings: [],
         run_job=lambda **kwargs: None,
         cancel_job=lambda: None,
         save_settings=lambda settings: None,
@@ -49,7 +49,7 @@ def test_log_append_writes_lines_to_text_box(qtbot, tmp_path: Path) -> None:
 def test_source_file_prefills_output_name(qtbot, tmp_path: Path) -> None:
     window = MainWindow(
         settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
-        scan_tracks=lambda path: [],
+        scan_tracks=lambda path, runtime_settings: [],
         run_job=lambda **kwargs: None,
         cancel_job=lambda: None,
         save_settings=lambda settings: None,
@@ -66,7 +66,7 @@ def test_source_file_prefills_output_name(qtbot, tmp_path: Path) -> None:
 def test_scan_with_no_truehd_tracks_logs_clear_message(qtbot, tmp_path: Path, monkeypatch) -> None:
     window = MainWindow(
         settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
-        scan_tracks=lambda path: [],
+        scan_tracks=lambda path, runtime_settings: [],
         run_job=lambda **kwargs: None,
         cancel_job=lambda: None,
         save_settings=lambda settings: None,
@@ -76,8 +76,49 @@ def test_scan_with_no_truehd_tracks_logs_clear_message(qtbot, tmp_path: Path, mo
         "dts2ac3.ui.main_window.QMessageBox.information",
         lambda *args, **kwargs: None,
     )
+    monkeypatch.setattr(
+        "dts2ac3.ui.main_window.QMessageBox.critical",
+        lambda *args, **kwargs: None,
+    )
 
     window.source_file_edit.setText(str(tmp_path / "movie.mkv"))
     window.handle_scan_tracks()
 
     assert "No TrueHD tracks detected." in window.log_output.toPlainText()
+
+
+def test_scan_uses_current_form_settings(qtbot, tmp_path: Path, monkeypatch) -> None:
+    captured: dict[str, Path | None] = {}
+
+    def scan_tracks(path: Path, settings: AppSettings):
+        captured["source_file"] = path
+        captured["mkvtoolnix_dir"] = settings.mkvtoolnix_dir
+        captured["eac3to_dir"] = settings.eac3to_dir
+        return []
+
+    window = MainWindow(
+        settings=AppSettings(),
+        scan_tracks=scan_tracks,
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: None,
+    )
+    qtbot.addWidget(window)
+    monkeypatch.setattr(
+        "dts2ac3.ui.main_window.QMessageBox.information",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        "dts2ac3.ui.main_window.QMessageBox.critical",
+        lambda *args, **kwargs: None,
+    )
+
+    source_file = tmp_path / "movie.mkv"
+    window.mkvtoolnix_edit.setText(r"C:\Program Files\MKVToolNix")
+    window.eac3to_edit.setText(r"C:\Program Files (x86)\eac3to_3.52")
+    window.source_file_edit.setText(str(source_file))
+    window.handle_scan_tracks()
+
+    assert captured["source_file"] == source_file
+    assert captured["mkvtoolnix_dir"] == Path(r"C:\Program Files\MKVToolNix")
+    assert captured["eac3to_dir"] == Path(r"C:\Program Files (x86)\eac3to_3.52")
