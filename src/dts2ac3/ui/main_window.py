@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Qt, Signal
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -261,6 +262,11 @@ class MainWindow(QMainWindow):
     def handle_cancel_job(self) -> None:
         self.append_log("Cancellation requested.")
         self._cancel_job()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self._sync_settings_from_form()
+        self._save_settings(self._settings)
+        super().closeEvent(event)
 
     def _handle_job_finished(self, result: WorkflowResult) -> None:
         self._set_running_state(False)

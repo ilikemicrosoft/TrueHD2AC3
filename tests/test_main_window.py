@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QCloseEvent
 
 from dts2ac3.models import AppSettings, AudioTrack
 from dts2ac3.ui.main_window import MainWindow
@@ -210,3 +211,34 @@ def test_does_not_autodetect_when_saved_tool_dirs_exist(qtbot, tmp_path: Path) -
     assert window.mkvtoolnix_edit.text() == r"D:\saved\MKVToolNix"
     assert window.eac3to_edit.text() == r"D:\saved\eac3to"
     assert detections == []
+
+
+def test_close_event_saves_manual_tool_dir_changes(qtbot, tmp_path: Path) -> None:
+    saved_settings: list[AppSettings] = []
+    window = MainWindow(
+        settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
+        scan_tracks=lambda path, runtime_settings: [],
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: saved_settings.append(
+            AppSettings(
+                mkvtoolnix_dir=settings.mkvtoolnix_dir,
+                eac3to_dir=settings.eac3to_dir,
+                output_dir=settings.output_dir,
+                working_dir=settings.working_dir,
+                eac3to_args=settings.eac3to_args,
+                replace_selected_truehd=settings.replace_selected_truehd,
+                cleanup_temp_files=settings.cleanup_temp_files,
+            )
+        ),
+        detect_tool_dir=lambda tool_name: None,
+    )
+    qtbot.addWidget(window)
+
+    window.mkvtoolnix_edit.setText(r"D:\manual\MKVToolNix")
+    window.eac3to_edit.setText(r"D:\manual\eac3to")
+    window.closeEvent(QCloseEvent())
+
+    assert len(saved_settings) == 1
+    assert saved_settings[0].mkvtoolnix_dir == Path(r"D:\manual\MKVToolNix")
+    assert saved_settings[0].eac3to_dir == Path(r"D:\manual\eac3to")
