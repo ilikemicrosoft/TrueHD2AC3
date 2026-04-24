@@ -47,13 +47,22 @@ class JobThread(QThread):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, settings: AppSettings, scan_tracks, run_job, cancel_job, save_settings) -> None:
+    def __init__(
+        self,
+        settings: AppSettings,
+        scan_tracks,
+        run_job,
+        cancel_job,
+        save_settings,
+        detect_tool_dir=None,
+    ) -> None:
         super().__init__()
         self._settings = settings
         self._scan_tracks = scan_tracks
         self._run_job = run_job
         self._cancel_job = cancel_job
         self._save_settings = save_settings
+        self._detect_tool_dir = detect_tool_dir or self._default_detect_tool_dir
         self._tracks: list[AudioTrack] = []
         self._job_thread: JobThread | None = None
         self.setWindowTitle("DTS2AC3")
@@ -132,12 +141,32 @@ class MainWindow(QMainWindow):
         return container
 
     def _load_settings(self) -> None:
-        mkvtoolnix_dir = self._settings.mkvtoolnix_dir or self._default_existing_dir(DEFAULT_MKVTOOLNIX_DIR)
-        eac3to_dir = self._settings.eac3to_dir or self._default_existing_dir(DEFAULT_EAC3TO_DIR)
+        autodetected = False
+        mkvtoolnix_dir = self._settings.mkvtoolnix_dir
+        eac3to_dir = self._settings.eac3to_dir
+
+        if mkvtoolnix_dir is None:
+            mkvtoolnix_dir = self._detect_tool_dir("mkvtoolnix")
+            if mkvtoolnix_dir is not None:
+                self._settings.mkvtoolnix_dir = mkvtoolnix_dir
+                autodetected = True
+
+        if eac3to_dir is None:
+            eac3to_dir = self._detect_tool_dir("eac3to")
+            if eac3to_dir is not None:
+                self._settings.eac3to_dir = eac3to_dir
+                autodetected = True
+
         if mkvtoolnix_dir:
             self.mkvtoolnix_edit.setText(str(mkvtoolnix_dir))
+        else:
+            self.mkvtoolnix_edit.setPlaceholderText("未侦测到，请手动填入路径")
+
         if eac3to_dir:
             self.eac3to_edit.setText(str(eac3to_dir))
+        else:
+            self.eac3to_edit.setPlaceholderText("未侦测到，请手动填入路径")
+
         if self._settings.output_dir:
             self.output_dir_edit.setText(str(self._settings.output_dir))
         if self._settings.working_dir:
@@ -146,6 +175,9 @@ class MainWindow(QMainWindow):
         self.replace_radio.setChecked(self._settings.replace_selected_truehd)
         self.keep_radio.setChecked(not self._settings.replace_selected_truehd)
         self.cleanup_checkbox.setChecked(self._settings.cleanup_temp_files)
+
+        if autodetected:
+            self._save_settings(self._settings)
 
     def pick_directory(self, target: QLineEdit) -> None:
         selected = QFileDialog.getExistingDirectory(self, "选择目录", target.text().strip())
@@ -260,6 +292,17 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _default_existing_dir(candidate: Path) -> Path | None:
+        return candidate if candidate.exists() else None
+
+    @staticmethod
+    def _default_detect_tool_dir(tool_name: str) -> Path | None:
+        defaults = {
+            "mkvtoolnix": DEFAULT_MKVTOOLNIX_DIR,
+            "eac3to": DEFAULT_EAC3TO_DIR,
+        }
+        candidate = defaults.get(tool_name)
+        if candidate is None:
+            return None
         return candidate if candidate.exists() else None
 
     @staticmethod

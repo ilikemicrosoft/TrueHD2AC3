@@ -129,3 +129,84 @@ def test_scan_uses_current_form_settings(qtbot, tmp_path: Path, monkeypatch) -> 
     assert captured["source_file"] == source_file
     assert captured["mkvtoolnix_dir"] == Path(r"C:\Program Files\MKVToolNix")
     assert captured["eac3to_dir"] == Path(r"C:\Program Files (x86)\eac3to_3.52")
+
+
+def test_autodetects_missing_tool_dirs_once_and_saves(qtbot, tmp_path: Path) -> None:
+    saved_settings: list[AppSettings] = []
+
+    def detect_tool_dir(tool_name: str) -> Path | None:
+        if tool_name == "mkvtoolnix":
+            return Path(r"C:\Program Files\MKVToolNix")
+        if tool_name == "eac3to":
+            return Path(r"C:\Program Files (x86)\eac3to_3.52")
+        return None
+
+    window = MainWindow(
+        settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
+        scan_tracks=lambda path, runtime_settings: [],
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: saved_settings.append(
+            AppSettings(
+                mkvtoolnix_dir=settings.mkvtoolnix_dir,
+                eac3to_dir=settings.eac3to_dir,
+                output_dir=settings.output_dir,
+                working_dir=settings.working_dir,
+                eac3to_args=settings.eac3to_args,
+                replace_selected_truehd=settings.replace_selected_truehd,
+                cleanup_temp_files=settings.cleanup_temp_files,
+            )
+        ),
+        detect_tool_dir=detect_tool_dir,
+    )
+    qtbot.addWidget(window)
+
+    assert window.mkvtoolnix_edit.text() == r"C:\Program Files\MKVToolNix"
+    assert window.eac3to_edit.text() == r"C:\Program Files (x86)\eac3to_3.52"
+    assert len(saved_settings) == 1
+    assert saved_settings[0].mkvtoolnix_dir == Path(r"C:\Program Files\MKVToolNix")
+    assert saved_settings[0].eac3to_dir == Path(r"C:\Program Files (x86)\eac3to_3.52")
+
+
+def test_shows_missing_tool_message_when_autodetect_fails(qtbot, tmp_path: Path) -> None:
+    window = MainWindow(
+        settings=AppSettings(output_dir=tmp_path, working_dir=tmp_path),
+        scan_tracks=lambda path, runtime_settings: [],
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: None,
+        detect_tool_dir=lambda tool_name: None,
+    )
+    qtbot.addWidget(window)
+
+    assert window.mkvtoolnix_edit.text() == ""
+    assert window.eac3to_edit.text() == ""
+    assert window.mkvtoolnix_edit.placeholderText() == "未侦测到，请手动填入路径"
+    assert window.eac3to_edit.placeholderText() == "未侦测到，请手动填入路径"
+
+
+def test_does_not_autodetect_when_saved_tool_dirs_exist(qtbot, tmp_path: Path) -> None:
+    detections: list[str] = []
+
+    def detect_tool_dir(tool_name: str) -> Path | None:
+        detections.append(tool_name)
+        return Path(r"C:\override\should-not-be-used")
+
+    window = MainWindow(
+        settings=AppSettings(
+            mkvtoolnix_dir=Path(r"D:\saved\MKVToolNix"),
+            eac3to_dir=Path(r"D:\saved\eac3to"),
+            output_dir=tmp_path,
+            working_dir=tmp_path,
+        ),
+        scan_tracks=lambda path, runtime_settings: [],
+        run_job=lambda **kwargs: None,
+        cancel_job=lambda: None,
+        save_settings=lambda settings: None,
+        detect_tool_dir=detect_tool_dir,
+    )
+    qtbot.addWidget(window)
+
+    assert window.mkvtoolnix_edit.text() == r"D:\saved\MKVToolNix"
+    assert window.eac3to_edit.text() == r"D:\saved\eac3to"
+    assert detections == []
