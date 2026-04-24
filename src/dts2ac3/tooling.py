@@ -55,6 +55,21 @@ def build_probe_command(mkvtoolnix_dir: Path, source_file: Path) -> list[str]:
     return [str(mkvtoolnix_dir / "mkvmerge.exe"), "-J", str(source_file)]
 
 
+def build_mkvextract_command(
+    mkvtoolnix_dir: Path,
+    source_file: Path,
+    selected_track: AudioTrack,
+    working_dir: Path,
+) -> list[str]:
+    extracted_file = working_dir / f"{source_file.stem}.track{selected_track.track_id}.thd"
+    return [
+        str(mkvtoolnix_dir / "mkvextract.exe"),
+        str(source_file),
+        "tracks",
+        f"{selected_track.track_id}:{extracted_file}",
+    ]
+
+
 def build_eac3to_convert_command(
     eac3to_dir: Path,
     source_file: Path,
@@ -62,7 +77,7 @@ def build_eac3to_convert_command(
     working_dir: Path,
     argument_template: str,
 ) -> list[str]:
-    output_file = working_dir / f"{source_file.stem}.track{selected_track.track_id}.ac3"
+    output_file = working_dir / f"{source_file.stem}.ac3"
     tokens = [
         token.replace("%_.ac3", str(output_file)).replace("%_", str(output_file.with_suffix("")))
         for token in argument_template.split()
@@ -71,7 +86,6 @@ def build_eac3to_convert_command(
     return [
         str(eac3to_dir / "eac3to.exe"),
         str(source_file),
-        f"{selected_track.track_id + 1}:",
         *tokens,
     ]
 

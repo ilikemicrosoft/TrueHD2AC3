@@ -3,6 +3,7 @@ from pathlib import Path
 from dts2ac3.models import AudioTrack
 from dts2ac3.tooling import (
     build_eac3to_convert_command,
+    build_mkvextract_command,
     build_mkvmerge_command,
     build_probe_command,
     find_truehd_tracks,
@@ -104,10 +105,33 @@ def test_build_probe_command_uses_mkvmerge_json_output() -> None:
     ]
 
 
+def test_build_mkvextract_command_extracts_selected_track() -> None:
+    command = build_mkvextract_command(
+        mkvtoolnix_dir=Path(r"C:\Program Files\MKVToolNix"),
+        source_file=Path(r"D:\media\movie.mkv"),
+        selected_track=AudioTrack(
+            track_id=3,
+            codec="TrueHD Atmos",
+            language="jpn",
+            channels=8,
+            is_default=True,
+            display_name="Japanese Atmos",
+        ),
+        working_dir=Path(r"D:\temp"),
+    )
+
+    assert command == [
+        str(Path(r"C:\Program Files\MKVToolNix") / "mkvextract.exe"),
+        str(Path(r"D:\media\movie.mkv")),
+        "tracks",
+        "3:" + str(Path(r"D:\temp") / "movie.track3.thd"),
+    ]
+
+
 def test_build_eac3to_convert_command_expands_percent_placeholder() -> None:
     command = build_eac3to_convert_command(
         eac3to_dir=Path(r"C:\Program Files (x86)\eac3to_3.52"),
-        source_file=Path(r"D:\media\movie.mkv"),
+        source_file=Path(r"D:\temp\movie.track3.thd"),
         selected_track=AudioTrack(
             track_id=3,
             codec="TrueHD Atmos",
@@ -122,8 +146,7 @@ def test_build_eac3to_convert_command_expands_percent_placeholder() -> None:
 
     assert command == [
         str(Path(r"C:\Program Files (x86)\eac3to_3.52") / "eac3to.exe"),
-        str(Path(r"D:\media\movie.mkv")),
-        "4:",
+        str(Path(r"D:\temp\movie.track3.thd")),
         str(Path(r"D:\temp") / "movie.track3.ac3"),
         "-640",
     ]
@@ -132,7 +155,7 @@ def test_build_eac3to_convert_command_expands_percent_placeholder() -> None:
 def test_build_eac3to_convert_command_preserves_spaces_in_output_path() -> None:
     command = build_eac3to_convert_command(
         eac3to_dir=Path(r"C:\Program Files (x86)\eac3to_3.52"),
-        source_file=Path(r"D:\media\movie.mkv"),
+        source_file=Path(r"D:\temp files\ac3 output\movie.track3.thd"),
         selected_track=AudioTrack(
             track_id=3,
             codec="TrueHD Atmos",
@@ -147,8 +170,7 @@ def test_build_eac3to_convert_command_preserves_spaces_in_output_path() -> None:
 
     assert command == [
         str(Path(r"C:\Program Files (x86)\eac3to_3.52") / "eac3to.exe"),
-        str(Path(r"D:\media\movie.mkv")),
-        "4:",
+        str(Path(r"D:\temp files\ac3 output\movie.track3.thd")),
         str(Path(r"D:\temp files\ac3 output") / "movie.track3.ac3"),
         "-640",
     ]

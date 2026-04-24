@@ -8,6 +8,7 @@ from dts2ac3.models import AppSettings, AudioTrack, WorkflowResult
 from dts2ac3.process_runner import ProcessRunner
 from dts2ac3.tooling import (
     build_eac3to_convert_command,
+    build_mkvextract_command,
     build_mkvmerge_command,
     build_probe_command,
     find_truehd_tracks,
@@ -20,9 +21,13 @@ class WorkflowCoordinator:
     def __init__(
         self,
         runner: ProcessRunner,
+        extracted_audio_resolver: Callable[[Path, AudioTrack, Path], Path] | None = None,
         converted_audio_resolver: Callable[[Path, AudioTrack, Path], Path] | None = None,
     ) -> None:
         self._runner = runner
+        self._extracted_audio_resolver = (
+            extracted_audio_resolver or self._default_extracted_audio_path
+        )
         self._converted_audio_resolver = (
             converted_audio_resolver or self._default_converted_audio_path
         )
@@ -100,6 +105,25 @@ class WorkflowCoordinator:
         if selected_track is None:
             return WorkflowResult(False, error_message="Selected TrueHD track was not found.")
 
+        extracted_audio = self._extracted_audio_resolver(
+            source_file,
+            selected_track,
+            settings.working_dir,
+        )
+        extract_result = self._runner.run(
+            build_mkvextract_command(
+                settings.mkvtoolnix_dir,
+                source_file,
+                selected_track,
+                settings.working_dir,
+            ),
+            on_log,
+        )
+        if extract_result.cancelled:
+            return WorkflowResult(False, error_message="Job canceled.")
+        if extract_result.return_code != 0 or not extracted_audio.exists():
+            return WorkflowResult(False, error_message="Audio extraction failed.")
+
         converted_audio = self._converted_audio_resolver(
             source_file,
             selected_track,
@@ -108,7 +132,7 @@ class WorkflowCoordinator:
         convert_result = self._runner.run(
             build_eac3to_convert_command(
                 settings.eac3to_dir,
-                source_file,
+                extracted_audio,
                 selected_track,
                 settings.working_dir,
                 settings.eac3to_args,
@@ -137,11 +161,13 @@ class WorkflowCoordinator:
         if merge_result.return_code != 0:
             return WorkflowResult(False, error_message="Muxing failed.")
 
-        if settings.cleanup_temp_files and converted_audio.exists():
-            try:
-                converted_audio.unlink()
-            except OSError as exc:
-                on_log(f"Warning: failed to remove temporary file: {exc}")
+        if settings.cleanup_temp_files:
+            for temp_file in (extracted_audio, converted_audio):
+                if temp_file.exists():
+                    try:
+                        temp_file.unlink()
+                    except OSError as exc:
+                        on_log(f"Warning: failed to remove temporary file: {exc}")
 
         return WorkflowResult(True, output_file=output_file)
 
@@ -152,3 +178,11 @@ class WorkflowCoordinator:
         working_dir: Path,
     ) -> Path:
         return working_dir / f"{source_file.stem}.track{selected_track.track_id}.ac3"
+
+    @staticmethod
+    def _default_extracted_audio_path(
+        source_file: Path,
+        selected_track: AudioTrack,
+        working_dir: Path,
+    ) -> Path:
+        return working_dir / f"{source_file.stem}.track{selected_track.track_id}.thd"

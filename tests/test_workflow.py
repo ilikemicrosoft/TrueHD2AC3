@@ -47,6 +47,7 @@ def test_workflow_runs_probe_convert_merge_and_cleanup(tmp_path: Path) -> None:
                 ],
                 stderr_lines=[],
             ),
+            CommandResult(return_code=0, stdout_lines=["extract ok"], stderr_lines=[]),
             CommandResult(return_code=0, stdout_lines=["convert ok"], stderr_lines=[]),
             CommandResult(return_code=0, stdout_lines=["merge ok"], stderr_lines=[]),
         ]
@@ -54,12 +55,15 @@ def test_workflow_runs_probe_convert_merge_and_cleanup(tmp_path: Path) -> None:
 
     work_dir = tmp_path / "work"
     work_dir.mkdir()
+    extracted = work_dir / "movie.track1.thd"
+    extracted.write_text("truehd", encoding="utf-8")
     converted = work_dir / "movie.track1.ac3"
     converted.write_text("ac3", encoding="utf-8")
 
     logs: list[str] = []
     coordinator = WorkflowCoordinator(
         runner=runner,
+        extracted_audio_resolver=lambda source, track, directory: extracted,
         converted_audio_resolver=lambda source, track, directory: converted,
     )
 
@@ -82,8 +86,9 @@ def test_workflow_runs_probe_convert_merge_and_cleanup(tmp_path: Path) -> None:
 
     assert result.success is True
     assert result.output_file == tmp_path / "exports" / "movie.ac3.mkv"
+    assert extracted.exists() is False
     assert converted.exists() is False
-    assert len(runner.commands) == 3
+    assert len(runner.commands) == 4
     assert any("merge ok" in line for line in logs)
 
 
@@ -204,6 +209,7 @@ def test_cleanup_failure_is_logged_but_not_fatal(tmp_path: Path) -> None:
                 ],
                 stderr_lines=[],
             ),
+            CommandResult(return_code=0, stdout_lines=["extract ok"], stderr_lines=[]),
             CommandResult(return_code=0, stdout_lines=["convert ok"], stderr_lines=[]),
             CommandResult(return_code=0, stdout_lines=["merge ok"], stderr_lines=[]),
         ]
@@ -211,12 +217,15 @@ def test_cleanup_failure_is_logged_but_not_fatal(tmp_path: Path) -> None:
 
     work_dir = tmp_path / "work"
     work_dir.mkdir()
+    extracted = work_dir / "movie.track1.thd"
+    extracted.write_text("truehd", encoding="utf-8")
     converted = work_dir / "movie.track1.ac3"
     converted.write_text("ac3", encoding="utf-8")
 
     logs: list[str] = []
     coordinator = WorkflowCoordinator(
         runner=runner,
+        extracted_audio_resolver=lambda source, track, directory: extracted,
         converted_audio_resolver=lambda source, track, directory: converted,
     )
 
